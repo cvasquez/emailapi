@@ -1,0 +1,7 @@
+{
+  "name": "emailapi",
+  "version": "0.0.1",
+  "dependencies": {
+    "koa": "^2.2.0"
+  }
+}
