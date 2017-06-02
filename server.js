@@ -8,6 +8,7 @@ const meta = [];
 var rss1 = 'http://powertimepodcast.com/feed/podcast';
 var rss2 = 'http://talkingrobocop.libsyn.com/rss';
 var rss3 = 'http://feeds.podtrac.com/zKq6WZZLTlbM';
+var blogfeed = 'https://blog.aweber.com/feed';
 var url1 = 'https://www.aweber.com';
 var url2 = 'https://www.google.com';
 
@@ -35,11 +36,23 @@ axios.get(rss2)
           type: 'podcast',
           author: $('rss itunes\\:author').first().text(),
           summary: $('rss itunes\\:summary').first().text(),
+          description: $('rss description').first().text(),
           image: $('rss itunes\\:image').attr('href')
-        })
+        });
       } else {
-        type: 'generic'
+        meta.push({
+          type: 'generic'
+        });
       }
+      $('item').each( (i, elem)=> {
+        meta.push({
+          item: {
+            title: $(elem).find('title').text(),
+            pubDate: $(elem).find('pubDate').text(),
+            link: $(elem).find('link').text()
+          }
+        });
+      })
     } else if($('html').text()) {
       meta.push( {
         type: 'html',
