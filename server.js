@@ -16,6 +16,11 @@ var url3 = 'https://www.embed.ly/cards';
 var site;
 
 app.use(async (ctx, next) => {
+  await next();
+  ctx.body = meta;
+});
+
+app.use(async (ctx, next) => {
   site = ctx.request.query.awq;
 
   axios.get(site)
@@ -100,8 +105,6 @@ app.use(async (ctx, next) => {
     .catch( (error) => {
       console.log(error);
     });
-
-  ctx.body = site;
 });
 
 app.listen(4001);
