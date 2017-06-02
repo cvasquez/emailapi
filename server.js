@@ -49,7 +49,8 @@ axios.get(rss2)
           item: {
             title: $(elem).find('title').text(),
             pubDate: $(elem).find('pubDate').text(),
-            link: $(elem).find('link').text()
+            link: $(elem).find('link').text(),
+            duration: $(elem).find('itunes\\:duration').text()
           }
         });
       })
