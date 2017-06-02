@@ -11,55 +11,87 @@ var rss3 = 'http://feeds.podtrac.com/zKq6WZZLTlbM';
 var blogfeed = 'https://blog.aweber.com/feed';
 var url1 = 'https://www.aweber.com';
 var url2 = 'https://www.google.com';
+var url3 = 'https://www.embed.ly/cards';
 
 app.use(async (ctx, next) => {
   await next();
   ctx.body = meta;
 });
 
-axios.get(rss2)
+axios.get(rss1)
   .then( (response) => {
     // Empty meta array
     meta.length = 0;
 
-    // Use cheerio to ready axios response for easy interpretation
-    var $ = cheerio.load(response.data);
+    // Used for understanding if a page is rss or html.
+    var contentType = response.headers['content-type'];
 
     // Attempt to get information about a url that points to an rss feed
-    if($('rss').text()) {
+    if(contentType.includes("application/rss+xml")) {
+
+      // Use cheerio to ready axios response for easy interpretation assuming it is xml.
+      var $ = cheerio.load(response.data,  {
+        normalizeWhitespace: true,
+        xmlMode: true,
+        decodeEntities: true
+      });
+
+      // Add generic rss feed JSON information to array
       meta.push( {
         category: 'rss',
-        title: $('rss title').first().text()
+        title: $('rss title').first().text(),
+        description: $('rss description').first().text(),
+        link: $('rss link').first().text()
       });
+
+      // Check to see if the feed is for a podcast. If so, set type to podcast and add podcast specific information to JSON
       if($('rss itunes\\:author').text()){
         meta.push({
           type: 'podcast',
           author: $('rss itunes\\:author').first().text(),
           summary: $('rss itunes\\:summary').first().text(),
-          description: $('rss description').first().text(),
           image: $('rss itunes\\:image').attr('href')
         });
-      } else {
+      }
+
+      // If the feed is not a podcast, set its type to generic.
+      else {
         meta.push({
           type: 'generic'
         });
       }
+
+      // Loop through RSS Items
       $('item').each( (i, elem)=> {
         meta.push({
           item: {
             title: $(elem).find('title').text(),
             pubDate: $(elem).find('pubDate').text(),
             link: $(elem).find('link').text(),
-            duration: $(elem).find('itunes\\:duration').text()
+            duration: $(elem).find('itunes\\:duration').text(),
+            image: $(elem).find('itunes\\:image').text()
           }
         });
-      })
-    } else if($('html').text()) {
+
+        return i<3;
+      });
+
+    // Attempt to get information about a url that points to an html page
+    } else if(contentType.includes("text/html")) {
+
+      // Use cheerio to ready axios response for easy interpretation assuming it is html.
+      var $ = cheerio.load(response.data,  {
+        normalizeWhitespace: true
+      });
+
+      // Add generic html page JSON information to array
       meta.push( {
         type: 'html',
-        title: $('title').first().text()
+        title: ($('meta[property="og:title"]').attr('content') || $('title').first().text())
       });
+
     }
+
     return(meta);
   })
   .then( (meta) => {
