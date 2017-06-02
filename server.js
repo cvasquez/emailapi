@@ -1,35 +1,58 @@
-/** Tutorials
-Koajs QuickStart Guide: http://knowthen.com/episode-3-koajs-quickstart-guide/
-**/
-
 const Koa = require('koa');
-const request = require('request');
+const axios = require('axios');
 const cheerio = require('cheerio');
 const app = new Koa();
 
-app.use(async function (ctx, next) {
-  var url = 'http://powertimepodcast.com/feed/podcast';
-  request(url, function(error, response, body){
-    var $ = cheerio.load(body);
-    // console.log($("title").text());
-    if($('rss').text()){
-      crawlRSS(ctx, $);
-    } else {
-      crawlHTML(ctx, $);
-    }
-  });
+// Create array for storing url information
+const meta = [];
+var rss1 = 'http://powertimepodcast.com/feed/podcast';
+var rss2 = 'http://talkingrobocop.libsyn.com/rss';
+var rss3 = 'http://feeds.podtrac.com/zKq6WZZLTlbM';
+var url1 = 'https://www.aweber.com';
+var url2 = 'https://www.google.com';
+
+app.use(async (ctx, next) => {
+  await next();
+  ctx.body = meta;
 });
 
-// Attempt to get information about a url that points to an rss feed
-function crawlRSS(ctx, cheerio){
-  var $ = cheerio;
-  title = $('channel > title').text();
-}
+axios.get(rss2)
+  .then( (response) => {
+    // Empty meta array
+    meta.length = 0;
 
-// Attempt to get informatino about a url that points to a non rss feed
-function crawlHTML(cheerio){
-  var $ = cheerio;
-  var title = $('title').text();
-}
+    // Use cheerio to ready axios response for easy interpretation
+    var $ = cheerio.load(response.data);
+
+    // Attempt to get information about a url that points to an rss feed
+    if($('rss').text()) {
+      meta.push( {
+        category: 'rss',
+        title: $('rss title').first().text()
+      });
+      if($('rss itunes\\:author').text()){
+        meta.push({
+          type: 'podcast',
+          author: $('rss itunes\\:author').first().text(),
+          summary: $('rss itunes\\:summary').first().text(),
+          image: $('rss itunes\\:image').attr('href')
+        })
+      } else {
+        type: 'generic'
+      }
+    } else if($('html').text()) {
+      meta.push( {
+        type: 'html',
+        title: $('title').first().text()
+      });
+    }
+    return(meta);
+  })
+  .then( (meta) => {
+    console.log(meta);
+  })
+  .catch( (error) => {
+    console.log(error);
+  });
 
 app.listen(4001);
