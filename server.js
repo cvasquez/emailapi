@@ -13,98 +13,91 @@ var url1 = 'https://www.aweber.com';
 var url2 = 'https://www.google.com';
 var url3 = 'https://www.embed.ly/cards';
 
-var site;
+app.use(async (ctx) => {
+  const site = ctx.request.query.awq;
 
-app.use(async (ctx, next) => {
-  await next();
-  ctx.body = meta;
-});
+  try {
+    const response = await axios.get(site);
 
-app.use(async (ctx, next) => {
-  site = ctx.request.query.awq;
+    // Empty meta array
+    meta.length = 0;
 
-  axios.get(site)
-    .then( (response) => {
-      // Empty meta array
-      meta.length = 0;
+    // Used for understanding if a page is rss or html.
+    var contentType = response.headers['content-type'];
 
-      // Used for understanding if a page is rss or html.
-      var contentType = response.headers['content-type'];
+    // Attempt to get information about a url that points to an rss feed
+    if(contentType.includes("application/rss+xml")) {
 
-      // Attempt to get information about a url that points to an rss feed
-      if(contentType.includes("application/rss+xml")) {
+      // Use cheerio to ready axios response for easy interpretation assuming it is xml.
+      var $ = cheerio.load(response.data,  {
+        normalizeWhitespace: true,
+        xmlMode: true,
+        decodeEntities: true
+      });
 
-        // Use cheerio to ready axios response for easy interpretation assuming it is xml.
-        var $ = cheerio.load(response.data,  {
-          normalizeWhitespace: true,
-          xmlMode: true,
-          decodeEntities: true
+      // Add generic rss feed JSON information to array
+      meta.push( {
+        category: 'rss',
+        title: $('rss title').first().text(),
+        description: $('rss description').first().text(),
+        link: $('rss link').first().text()
+      });
+
+      // Check to see if the feed is for a podcast. If so, set type to podcast and add podcast specific information to JSON
+      if($('rss itunes\\:author').text()){
+        meta.push({
+          type: 'podcast',
+          author: $('rss itunes\\:author').first().text(),
+          summary: $('rss itunes\\:summary').first().text(),
+          image: $('rss itunes\\:image').attr('href')
         });
-
-        // Add generic rss feed JSON information to array
-        meta.push( {
-          category: 'rss',
-          title: $('rss title').first().text(),
-          description: $('rss description').first().text(),
-          link: $('rss link').first().text()
-        });
-
-        // Check to see if the feed is for a podcast. If so, set type to podcast and add podcast specific information to JSON
-        if($('rss itunes\\:author').text()){
-          meta.push({
-            type: 'podcast',
-            author: $('rss itunes\\:author').first().text(),
-            summary: $('rss itunes\\:summary').first().text(),
-            image: $('rss itunes\\:image').attr('href')
-          });
-        }
-
-        // If the feed is not a podcast, set its type to generic.
-        else {
-          meta.push({
-            type: 'generic'
-          });
-        }
-
-        // Loop through RSS Items
-        $('item').each( (i, elem)=> {
-          meta.push({
-            item: {
-              title: $(elem).find('title').text(),
-              pubDate: $(elem).find('pubDate').text(),
-              link: $(elem).find('link').text(),
-              duration: $(elem).find('itunes\\:duration').text(),
-              image: $(elem).find('itunes\\:image').text()
-            }
-          });
-
-          return i<3;
-        });
-
-      // Attempt to get information about a url that points to an html page
-      } else if(contentType.includes("text/html")) {
-
-        // Use cheerio to ready axios response for easy interpretation assuming it is html.
-        var $ = cheerio.load(response.data,  {
-          normalizeWhitespace: true
-        });
-
-        // Add generic html page JSON information to array
-        meta.push( {
-          type: 'html',
-          title: ($('meta[property="og:title"]').attr('content') || $('title').first().text())
-        });
-
       }
 
-      return(meta);
-    })
-    .then( (meta) => {
-      console.log(meta);
-    })
-    .catch( (error) => {
-      console.log(error);
-    });
+      // If the feed is not a podcast, set its type to generic.
+      else {
+        meta.push({
+          type: 'generic'
+        });
+      }
+
+      // Loop through RSS Items
+      $('item').each( (i, elem)=> {
+        meta.push({
+          item: {
+            title: $(elem).find('title').text(),
+            pubDate: $(elem).find('pubDate').text(),
+            link: $(elem).find('link').text(),
+            duration: $(elem).find('itunes\\:duration').text(),
+            image: $(elem).find('itunes\\:image').text()
+          }
+        });
+
+        return i<3;
+      });
+
+    }
+
+    // Attempt to get information about a url that points to an html page
+    else if(contentType.includes("text/html")) {
+
+      // Use cheerio to ready axios response for easy interpretation assuming it is html.
+      var $ = cheerio.load(response.data,  {
+        normalizeWhitespace: true
+      });
+
+      // Add generic html page JSON information to array
+      meta.push( {
+        type: 'html',
+        title: ($('meta[property="og:title"]').attr('content') || $('title').first().text())
+      });
+
+    }
+
+    // return(meta);
+    ctx.body = meta;
+  } catch(e) {
+    console.log('Error: ', e);
+  }
 });
 
 app.listen(4001);
