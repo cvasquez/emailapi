@@ -93,8 +93,8 @@ app.use(async (ctx) => {
 
     }
 
-    // return(meta);
     ctx.body = meta;
+
   } catch(e) {
     console.log('Error: ', e);
   }
