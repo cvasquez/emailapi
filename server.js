@@ -87,7 +87,7 @@ app.use(async (ctx) => {
 
       // Add generic html page JSON information to array
       meta.push( {
-        type: 'html',
+        category: 'html',
         title: ($('meta[property="og:title"]').attr('content') || $('title').first().text())
       });
 
