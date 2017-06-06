@@ -1,19 +1,23 @@
 const Koa = require('koa');
 const axios = require('axios');
+const twitter = require('twitter');
 const cheerio = require('cheerio');
+const OAuth2 = require('OAuth').OAuth2;
+const credentials = require('./credentials');
 const app = new Koa();
 
-// Create array for storing url information
-const meta = [];
-var rss1 = 'http://powertimepodcast.com/feed/podcast';
-var rss2 = 'http://talkingrobocop.libsyn.com/rss';
-var rss3 = 'http://feeds.podtrac.com/zKq6WZZLTlbM';
-var blogfeed = 'https://blog.aweber.com/feed';
-var url1 = 'https://www.aweber.com';
-var url2 = 'https://www.google.com';
-var url3 = 'https://www.embed.ly/cards';
-
 app.use(async (ctx) => {
+  // Example URLs
+  var rss1 = 'http://powertimepodcast.com/feed/podcast';
+  var rss2 = 'http://talkingrobocop.libsyn.com/rss';
+  var rss3 = 'http://feeds.podtrac.com/zKq6WZZLTlbM';
+  var blogfeed = 'https://blog.aweber.com/feed';
+  var url1 = 'https://www.aweber.com';
+  var url2 = 'https://www.google.com';
+  var url3 = 'https://www.embed.ly/cards';
+
+  // Create array for storing url information
+  const meta = [];
   const site = ctx.request.query.awq;
 
   try {
@@ -86,10 +90,61 @@ app.use(async (ctx) => {
       });
 
       // Add generic html page JSON information to array
-      meta.push( {
+      meta.push({
         category: 'html',
-        title: ($('meta[property="og:title"]').attr('content') || $('title').first().text())
+        title: ($('meta[property="og:title"]').attr('content') || $('title').first().text()),
+        description: ($('meta[property="og:description"]').attr('content') || $('description').first().text()),
+        image: $('meta[property="og:image"]').attr('content'),
+        link: $('meta[property="og:url"]').attr('content')
       });
+
+      // Check to see if the page is for a YouTube video. If so, set type to youtube and add youtube specific information to JSON
+      if(site.includes('youtube.com/watch' || 'youtu.be/')) {
+        try {
+          const ytResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+            params: {
+              key: credentials.youtube.key,
+              part: 'statistics',
+              id: 'J6mpmEL9wGw'
+            }
+          });
+
+          meta.push({
+            type: 'YouTube',
+            // Need an additional scope (either snippet or contentDetails) if I want non-stat meta like: channelTitle: ytResponse.data.items[0].snippet.channelTitle,
+            viewCount: ytResponse.data.items[0].statistics.viewCount,
+            likeCount: ytResponse.data.items[0].statistics.likeCount,
+            dislikeCount: ytResponse.data.items[0].statistics.dislikeCount,
+            commentCount: ytResponse.data.items[0].statistics.commentCount
+          });
+
+        } catch(e) {
+          console.log('Error: ', e);
+        }
+      }
+      // Check to see if the page is for a Twitter user. If so, set type to Twitter and add youtube specific information to JSON
+      else if(site.includes('twitter.com/')) {
+        // Make OAuth2 request for an application only bearer token for Twitter
+        var oauth2 = new OAuth2(credentials.twitter.consumer_key, credentials.twitter.consumer_secret, 'https://api.twitter.com/', null, 'oauth2/token', null);
+        oauth2.getOAuthAccessToken('', {
+            'grant_type': 'client_credentials'
+          }, function (e, access_token) {
+            var twtr = new twitter({
+              consumer_key: credentials.twitter.consumer_key,
+              consumer_secret: credentials.twitter.consumer_secret,
+              bearer_token: access_token
+            });
+
+            var twtrParams = {
+              screen_name: 'clickpop',
+              count: '1'
+            };
+
+            twtr.get('https://api.twitter.com/1.1/statuses/user_timeline.json', twtrParams, function(error, tweets, response){
+              console.log(tweets);
+            });
+        });
+      }
 
     }
 
