@@ -30,7 +30,7 @@ app.use(async (ctx) => {
     var contentType = response.headers['content-type'];
 
     // Attempt to get information about a url that points to an rss feed
-    if(contentType.includes("application/rss+xml") || contentType.includes("text/xml")) {
+    if(contentType.includes("application/rss+xml") || contentType.includes("text/xml") || contentType.includes("application/xml")) {
 
       // Use cheerio to ready axios response for easy interpretation assuming it is xml.
       var $ = cheerio.load(response.data,  {
