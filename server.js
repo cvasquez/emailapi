@@ -100,12 +100,16 @@ app.use(async (ctx) => {
 
       // Check to see if the page is for a YouTube video. If so, set type to youtube and add youtube specific information to JSON
       if(site.includes('youtube.com/watch' || 'youtu.be/')) {
+        var regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#\&\?]*).*/;
+        var match = ctx.request.url.match(regExp);
+        var ytId = (match&&match[7].length==11)? match[7] : false;
+
         try {
           const ytResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
             params: {
               key: credentials.youtube.key,
               part: 'statistics',
-              id: 'J6mpmEL9wGw'
+              id: ytId
             }
           });
 
