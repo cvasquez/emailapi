@@ -30,7 +30,7 @@ app.use(async (ctx) => {
     var contentType = response.headers['content-type'];
 
     // Attempt to get information about a url that points to an rss feed
-    if(contentType.includes("application/rss+xml")) {
+    if(contentType.includes("application/rss+xml") || contentType.includes("text/xml")) {
 
       // Use cheerio to ready axios response for easy interpretation assuming it is xml.
       var $ = cheerio.load(response.data,  {
@@ -92,6 +92,7 @@ app.use(async (ctx) => {
       // Add generic html page JSON information to array
       meta.push({
         category: 'html',
+        type: 'generic',
         title: ($('meta[property="og:title"]').attr('content') || $('title').first().text()),
         description: ($('meta[property="og:description"]').attr('content') || $('description').first().text()),
         image: $('meta[property="og:image"]').attr('content'),
@@ -155,7 +156,7 @@ app.use(async (ctx) => {
     ctx.body = meta;
 
   } catch(e) {
-    console.log('Error: ', e);
+    ctx.body = "Error: " + e;
   }
 });
 
