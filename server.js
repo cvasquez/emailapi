@@ -17,14 +17,11 @@ app.use(async (ctx) => {
   var url3 = 'https://www.embed.ly/cards';
 
   // Create array for storing url information
-  const meta = [];
+  let meta = {};
   const site = ctx.request.query.awq;
 
   try {
     const response = await axios.get(site);
-
-    // Empty meta array
-    meta.length = 0;
 
     // Used for understanding if a page is rss or html.
     var contentType = response.headers['content-type'];
@@ -40,16 +37,19 @@ app.use(async (ctx) => {
       });
 
       // Add generic rss feed JSON information to array
-      meta.push( {
+      meta = {
         category: 'rss',
+        type: 'generic',
+        // @TODO add favicon
         title: $('rss title').first().text(),
         description: $('rss description').first().text(),
-        link: $('rss link').first().text()
-      });
+        link: $('rss link').first().text(),
+        items: []
+      };
 
       // Check to see if the feed is for a podcast. If so, set type to podcast and add podcast specific information to JSON
       if($('rss itunes\\:author').text()){
-        meta.push({
+        meta = Object.assign(meta,{
           type: 'podcast',
           author: $('rss itunes\\:author').first().text(),
           summary: $('rss itunes\\:summary').first().text(),
@@ -57,16 +57,9 @@ app.use(async (ctx) => {
         });
       }
 
-      // If the feed is not a podcast, set its type to generic.
-      else {
-        meta.push({
-          type: 'generic'
-        });
-      }
-
       // Loop through RSS Items
       $('item').each( (i, elem)=> {
-        meta.push({
+        meta.items.push({
           item: {
             title: $(elem).find('title').text(),
             pubDate: $(elem).find('pubDate').text(),
@@ -90,14 +83,15 @@ app.use(async (ctx) => {
       });
 
       // Add generic html page JSON information to array
-      meta.push({
+      meta = {
         category: 'html',
         type: 'generic',
+        // @TODO add favicon
         title: ($('meta[property="og:title"]').attr('content') || $('title').first().text()),
         description: ($('meta[property="og:description"]').attr('content') || $('description').first().text()),
         image: $('meta[property="og:image"]').attr('content'),
         link: $('meta[property="og:url"]').attr('content')
-      });
+      };
 
       // Check to see if the page is for a YouTube video. If so, set type to youtube and add youtube specific information to JSON
       if(site.includes('youtube.com/watch' || 'youtu.be/')) {
@@ -114,7 +108,7 @@ app.use(async (ctx) => {
             }
           });
 
-          meta.push({
+          meta = Object.assign(meta,{
             type: 'YouTube',
             // Need an additional scope (either snippet or contentDetails) if I want non-stat meta like: channelTitle: ytResponse.data.items[0].snippet.channelTitle,
             viewCount: ytResponse.data.items[0].statistics.viewCount,
@@ -153,6 +147,7 @@ app.use(async (ctx) => {
 
     }
 
+    ctx.headers['content-type'] = 'application/json';
     ctx.body = meta;
 
   } catch(e) {
@@ -160,4 +155,4 @@ app.use(async (ctx) => {
   }
 });
 
-app.listen(4001);
+app.listen(8080);
