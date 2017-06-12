@@ -2,7 +2,7 @@ const Koa = require('koa');
 const axios = require('axios');
 const twitter = require('twitter');
 const cheerio = require('cheerio');
-const OAuth2 = require('OAuth').OAuth2;
+const OAuth2 = require('oauth').OAuth2;
 const credentials = require('./credentials');
 const app = new Koa();
 
@@ -88,9 +88,9 @@ app.use(async (ctx) => {
         type: 'generic',
         // @TODO add favicon
         title: ($('meta[property="og:title"]').attr('content') || $('title').first().text()),
-        description: ($('meta[property="og:description"]').attr('content') || $('description').first().text()),
-        image: $('meta[property="og:image"]').attr('content'),
-        link: $('meta[property="og:url"]').attr('content')
+        description: ($('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content')),
+        image: ($('meta[property="og:image"]').attr('content') || ($('img').first().attr('src').includes(site) ?  $('img').first().attr('src') : site + "/" + $('img').first().attr('src'))),
+        link: ($('meta[property="og:url"]').attr('content') || site)
       };
 
       // Check to see if the page is for a YouTube video. If so, set type to youtube and add youtube specific information to JSON
