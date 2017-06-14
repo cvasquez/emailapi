@@ -65,7 +65,8 @@ app.use(async (ctx) => {
             pubDate: $(elem).find('pubDate').text(),
             link: $(elem).find('link').text(),
             duration: $(elem).find('itunes\\:duration').text(),
-            image: $(elem).find('itunes\\:image').text()
+            image: $(elem).find('itunes\\:image').text(),
+            description: $(elem).find('description').text()
           }
         });
 
