@@ -4,4 +4,6 @@ My first ever API
 # Setup
 * Clone the repo
 * `npm install`
-* Open localhost:4001 in your browser
+* `npm start`
+* Open localhost:8080 in your browser
+* add `?awq=[any website url you like]` to see the scraped data

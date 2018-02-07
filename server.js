@@ -3,8 +3,11 @@ const axios = require('axios');
 const twitter = require('twitter');
 const cheerio = require('cheerio');
 const OAuth2 = require('oauth').OAuth2;
+const cors = require('@koa/cors');
 const credentials = require('./credentials');
 const app = new Koa();
+
+app.use(cors());
 
 app.use(async (ctx) => {
   // Example URLs
@@ -122,7 +125,7 @@ app.use(async (ctx) => {
           console.log('Error: ', e);
         }
       }
-      // Check to see if the page is for a Twitter user. If so, set type to Twitter and add youtube specific information to JSON
+      // Check to see if the page is for a Twitter user. If so, set type to Twitter and add Twitter specific information to JSON. Currently only showing in the console.
       else if(site.includes('twitter.com/')) {
         // Make OAuth2 request for an application only bearer token for Twitter
         var oauth2 = new OAuth2(credentials.twitter.consumer_key, credentials.twitter.consumer_secret, 'https://api.twitter.com/', null, 'oauth2/token', null);
@@ -143,6 +146,11 @@ app.use(async (ctx) => {
             twtr.get('https://api.twitter.com/1.1/statuses/user_timeline.json', twtrParams, function(error, tweets, response){
               console.log(tweets);
             });
+        });
+
+        meta = Object.assign(meta,{
+          type: 'Twitter',
+          like: ''
         });
       }
 
